@@ -17,6 +17,6 @@ func New(handler locations.Handler) *Repository {
 }
 
 func (r *Repository) Build() {
-	http.HandleFunc("/info", r.handler.InfoHandler)
-	http.HandleFunc("/add", r.handler.AddHandler)
+	http.HandleFunc("/v1/info", r.handler.InfoHandler)
+	http.HandleFunc("/v1/add", r.handler.AddHandler)
 }
