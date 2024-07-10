@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/alexPavlikov/time-tracker/internal/config"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Connect(cfg *config.Config) (conn *pgx.Conn, err error) {
+func Connect(cfg *config.Config) (conn *pgxpool.Pool, err error) {
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", cfg.PostgreUser, cfg.PostgrePassword, cfg.PostgresPath, cfg.PostgresPort, cfg.PostgreDatabaseName)
-	conn, err = pgx.Connect(context.Background(), databaseURL)
+	conn, err = pgxpool.New(context.Background(), databaseURL)
+	//conn, err = pgx.Connect(context.Background(), databaseURL)
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,11 @@ import (
 	postgres "github.com/alexPavlikov/time-tracker/internal/server/db"
 	"github.com/alexPavlikov/time-tracker/internal/server/locations"
 	"github.com/alexPavlikov/time-tracker/internal/server/service"
+	"github.com/gofrs/uuid/v5"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+
+	_ "github.com/alexPavlikov/time-tracker/internal/migrations"
 )
 
 const (
@@ -31,20 +36,35 @@ func Run() error {
 
 	slog.Info("starting application listen on", "server", cfg.ServerToString())
 
+	UUID, err := uuid.NewV4()
+	if err != nil {
+		return fmt.Errorf("create user UUID error: %w", err)
+	}
+
 	conn, err := db.Connect(cfg)
 	if err != nil {
 		return fmt.Errorf("failed connect to database: %w", err)
 	}
 
-	defer func() {
-		if err := conn.Close(context.Background()); err != nil {
-			panic("failed to close db connection")
-		}
-	}()
+	defer conn.Close()
+
+	//----------------------------------------------
+	db := stdlib.OpenDBFromPool(conn)
+
+	if err := goose.Up(db, "."); err != nil {
+		return fmt.Errorf("failed to start migrations: %w", err)
+	}
+	//----------------------------------------------
+
+	ctx := context.Background()
+
+	ctx = context.WithValue(ctx, "UUID", UUID.String())
+
+	slog.Info("generate user UUID", "uuid", UUID.String())
 
 	postgres := postgres.New(context.TODO(), conn)
 	service := service.New(context.TODO(), postgres)
-	handler := locations.New(*service)
+	handler := locations.New(ctx, *service)
 	repo := router.New(*handler)
 
 	repo.Build()

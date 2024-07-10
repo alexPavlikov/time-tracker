@@ -1,35 +1,98 @@
 package locations
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alexPavlikov/time-tracker/internal/domain"
 	"github.com/alexPavlikov/time-tracker/internal/server/service"
+	"github.com/gofrs/uuid/v5"
 )
 
 type Handler struct {
+	ctx     context.Context
 	service service.Services
 }
 
-func New(service service.Services) *Handler {
+func New(context context.Context, service service.Services) *Handler {
 	return &Handler{
+		ctx:     context,
 		service: service,
 	}
 }
 
-func (h *Handler) InfoHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UsersHandler(w http.ResponseWriter, r *http.Request) {
+	// url: localhost:9090/v1/users?offset=_&limit=_
+	if r.Method == "GET" {
+
+		start := h.startDoTask()
+
+		uuid, err := uuid.FromString(h.ctx.Value("UUID").(string))
+		if err != nil {
+			slog.Error("failed to get user UUID from context", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		var m = domain.Metrics{
+			User_ID:  uuid,
+			FuncName: "UsersHandler",
+			Time:     0,
+		}
+
+		defer h.endDoTask(start, m)
+
+		r.ParseForm()
+
+		offset, _ := strconv.Atoi(r.FormValue("offset"))
+		limit, _ := strconv.Atoi(r.FormValue("limit"))
+
+		users, err := h.service.GetPag(limit, offset)
+		if err != nil {
+			slog.Error("failed to get pagination users", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(users)
+		if err != nil {
+			slog.Error("failed to encode pagination users", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *Handler) UserHandler(w http.ResponseWriter, r *http.Request) {
 	// if r.Method == "GET" {
 
 	// }
 }
 
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
+		start := h.startDoTask()
+
+		uuid, err := uuid.FromString(h.ctx.Value("UUID").(string))
+		if err != nil {
+			slog.Error("failed to get user UUID from context", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		var m = domain.Metrics{
+			User_ID:  uuid,
+			FuncName: "AddHandler",
+			Time:     0,
+		}
+
 		var req domain.RequestAdd
 
 		decoder := json.NewDecoder(r.Body)
@@ -47,7 +110,6 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var err error
 		var resp domain.ResponseAdd
 
 		resp.PassportSeries, err = strconv.Atoi(slice[0])
@@ -64,9 +126,9 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var APIUrl string
+		var APIUrl string = ""
 
-		user, err := h.ApiInfoHandler(APIUrl, resp)
+		user, err := h.ApiInfoHandler(APIUrl, resp) // how create url to api
 		if err != nil {
 			if errors.Is(err, errors.New("bad request")) {
 				slog.Error("failed send to API", "error", err)
@@ -79,7 +141,7 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		user = domain.User{
+		user = domain.User{ //delete
 			ID:             1,
 			PassportSeries: 2,
 			PassportNumber: 3,
@@ -96,6 +158,13 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.Info("user add successfull", "id", user.ID)
+
+		err = h.endDoTask(start, m)
+		if err != nil {
+			slog.Error("failed on endDoTask", "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -114,4 +183,82 @@ func (h *Handler) ApiInfoHandler(APIUrl string, resp domain.ResponseAdd) (user d
 	user.PassportSeries = resp.PassportSeries
 
 	return user, nil
+}
+
+func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPatch {
+		start := h.startDoTask()
+
+		uuid, err := uuid.FromString(h.ctx.Value("UUID").(string))
+		if err != nil {
+			slog.Error("failed to get user UUID from context", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		var m = domain.Metrics{
+			User_ID:  uuid,
+			FuncName: "UpdateHandler",
+			Time:     0,
+		}
+
+		defer h.endDoTask(start, m)
+
+		var user domain.User
+
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&user); err != nil {
+			slog.Error("failed to decode passport", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if err := h.service.Update(user); err != nil {
+			slog.Error("failed to update user", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *Handler) startDoTask() time.Time {
+	return time.Now()
+}
+
+func (h *Handler) endDoTask(start time.Time, m domain.Metrics) error {
+	m.Time = time.Since(start)
+
+	err := h.service.AddMetrics(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Handler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+
+		uuid, err := uuid.FromString(h.ctx.Value("UUID").(string))
+		if err != nil {
+			slog.Error("failed to get user UUID from context", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		metrics, err := h.service.GetMetrics(uuid)
+		if err != nil {
+			slog.Error("failed to get metrics users", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(&metrics)
+		if err != nil {
+			slog.Error("failed to encode users metrics", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+	}
 }

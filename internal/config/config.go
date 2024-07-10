@@ -14,6 +14,7 @@ type Config struct {
 	Env                 string        `mapstructure:"ENV"`
 	Timeout             time.Duration `mapstructure:"TIMEOUT"`
 	LogLevel            string        `mapstructure:"LOGLEVEL"`
+	PaginationLimit     int           `mapstructure:"PAGINATION_LIMIT"`
 	Path                string        `mapstructure:"SERVER_PATH"`
 	Port                int           `mapstructure:"SERVER_PORT"`
 	PostgresPath        string        `mapstructure:"POSTGRES_PATH"`
