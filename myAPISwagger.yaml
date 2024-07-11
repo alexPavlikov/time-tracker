@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+  title: Time tracker
+  version: 0.0.1
+paths:
+  /v1/users:
+    get:
+      parameters:
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: address
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: patronymic
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: surname
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pass_number
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pass_series
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+  /v1/user:
+    get:
+        parameters:
+          - name: id
+            in: query
+            required: true
+            schema:
+                type: integer
+        responses:
+            '200':
+                description: Ok
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/User'
+            '400':
+                description: Bad request
+            '500':
+                description: Internal server error
+  /v1/add:
+    post:
+        parameters:
+          - name: passport
+            in: query
+            required: true
+            schema:
+                type: string
+        responses:
+                '200':
+                    description: Ok
+                '400':
+                    description: Bad request
+                '500':
+                    description: Internal server error
+  /v1/delete:
+    delete:
+        parameters:
+          - name: id
+            in: query
+            required: true
+            schema:
+                type: integer
+        responses:
+                '200':
+                    description: Ok
+                '400':
+                    description: Bad request
+                '500':
+                    description: Internal server error
+  /v1/update:
+    patch:
+        parameters:
+              - name: address
+                in: query
+                required: false
+                schema:
+                    type: string
+              - name: name
+                in: query
+                required: false
+                schema:
+                    type: string
+              - name: patronymic
+                in: query
+                required: false
+                schema:
+                    type: string
+              - name: surname
+                in: query
+                required: false
+                schema:
+                    type: string
+              - name: pass_number
+                in: query
+                required: false
+                schema:
+                    type: integer
+              - name: pass_series
+                in: query
+                required: false
+                schema:
+                    type: integer
+        responses:
+                    '200':
+                        description: Ok
+                    '400':
+                        description: Bad request
+                    '500':
+                        description: Internal server error      
+  /v1/metrics:
+    get:
+        responses:
+                    '200':
+                        description: Ok
+                        content:
+                            application/json:
+                                schema:
+                                    $ref: '#/components/schemas/Metrics'
+                    '400':
+                        description: Bad request
+                    '500':
+                        description: Internal server error  
+components:
+  schemas:
+    User:
+      required:
+        - id
+        - passport_series
+        - passport_number
+        - surname
+        - name
+        - patronymic
+        - address
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        passport_series:
+          type: integer
+          example: 123
+        passport_number:
+          type: integer
+          example: 123
+        surname:
+          type: string
+          example: Иванов
+        name:
+          type: string
+          example: Иван
+        patronymic:
+          type: string
+          example: Иванович
+        address:
+          type: string
+          example: ул. Университетская, д.2
+    Metrics:
+        required:
+            - user_id
+            - func_name
+            - time
+        type: object
+        properties:
+            user_id:
+                type: integer
+                example: 123
+            func_name:
+                type: integer
+                example: main
+            time:
+                type: integer
+                example: 120

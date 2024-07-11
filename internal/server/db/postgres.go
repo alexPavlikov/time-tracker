@@ -109,7 +109,9 @@ func (p *Postgres) PagSelect(ctx context.Context, limit int, offset int, options
 
 	if options != nil {
 		opt := validateSortParameters(options[0])
-		query += " WHERE " + opt
+		if opt != "" {
+			query += " WHERE " + opt
+		}
 	}
 
 	query += " ORDER BY id LIMIT $1 OFFSET $2"

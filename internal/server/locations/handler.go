@@ -243,6 +243,25 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		r.ParseForm()
+
+		id, err := strconv.Atoi(r.FormValue("id"))
+		if err != nil {
+			slog.Error("failed to get user id", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if err := h.service.Delete(id); err != nil {
+			slog.Error("failed to delete user", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // Функция начала отсчета работы функции
 func (h *Handler) startDoTask() time.Time {
 	return time.Now()

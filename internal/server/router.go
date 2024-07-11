@@ -21,5 +21,6 @@ func (r *Repository) Build() {
 	http.HandleFunc("/v1/user", r.handler.UserHandler)
 	http.HandleFunc("/v1/add", r.handler.AddHandler)
 	http.HandleFunc("/v1/update", r.handler.UpdateHandler)
+	http.HandleFunc("/v1/delete", r.handler.DeleteHandler)
 	http.HandleFunc("/v1/metrics", r.handler.MetricsHandler)
 }
