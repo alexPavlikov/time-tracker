@@ -27,8 +27,9 @@ func New(context context.Context, service service.Services) *Handler {
 	}
 }
 
+// url: localhost:9090/v1/users?offset=_&limit=_&address=_&name=_&patronymic=_&surname=_&pass_number=_&pass_series
+// Обязательные параметры offset limit
 func (h *Handler) UsersHandler(w http.ResponseWriter, r *http.Request) {
-	// url: localhost:9090/v1/users?offset=_&limit=_
 	if r.Method == "GET" {
 
 		start := h.startDoTask()
@@ -50,10 +51,19 @@ func (h *Handler) UsersHandler(w http.ResponseWriter, r *http.Request) {
 
 		r.ParseForm()
 
+		var opt domain.UserSortParameters
+
 		offset, _ := strconv.Atoi(r.FormValue("offset"))
 		limit, _ := strconv.Atoi(r.FormValue("limit"))
 
-		users, err := h.service.GetPag(limit, offset)
+		opt.Address = r.FormValue("address")
+		opt.Name = r.FormValue("name")
+		opt.Patronymic = r.FormValue("patronymic")
+		opt.Surname = r.FormValue("surname")
+		opt.PassportNumber, _ = strconv.Atoi(r.FormValue("pass_number"))
+		opt.PassportSeries, _ = strconv.Atoi(r.FormValue("pass_series"))
+
+		users, err := h.service.GetPag(limit, offset, opt)
 		if err != nil {
 			slog.Error("failed to get pagination users", "error", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -71,9 +81,21 @@ func (h *Handler) UsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UserHandler(w http.ResponseWriter, r *http.Request) {
-	// if r.Method == "GET" {
+	if r.Method == "GET" {
+		r.ParseForm()
+		id, err := strconv.Atoi(r.FormValue("user_id"))
+		if err != nil {
+			slog.Error("failed to convert user_id", "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 
-	// }
+		if err := h.service.Delete(id); err != nil {
+			slog.Error("failed to delete user", "id", id, "error", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +163,7 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		user = domain.User{ //delete
+		user = domain.User{ //пример
 			ID:             1,
 			PassportSeries: 2,
 			PassportNumber: 3,
@@ -221,10 +243,12 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Функция начала отсчета работы функции
 func (h *Handler) startDoTask() time.Time {
 	return time.Now()
 }
 
+// Функция посчета времени работы функция и записи ее в базу данных
 func (h *Handler) endDoTask(start time.Time, m domain.Metrics) error {
 	m.Time = time.Since(start)
 

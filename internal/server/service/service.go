@@ -71,8 +71,8 @@ func (s *Services) Get() ([]domain.User, error) {
 	return users, nil
 }
 
-func (s *Services) GetPag(limit int, offset int) ([]domain.User, error) {
-	users, err := s.postgres.PagSelect(s.ctx, limit, offset)
+func (s *Services) GetPag(limit int, offset int, options ...domain.UserSortParameters) ([]domain.User, error) {
+	users, err := s.postgres.PagSelect(s.ctx, limit, offset, options[0])
 	if err != nil {
 		return nil, fmt.Errorf("select pagination users error: %w", err)
 	}

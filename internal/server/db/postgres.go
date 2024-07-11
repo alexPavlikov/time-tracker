@@ -22,6 +22,7 @@ func New(ctx context.Context, DB *pgxpool.Pool) *Postgres {
 	}
 }
 
+// Функция выборки одного user по id
 func (p *Postgres) SelectOne(ctx context.Context, id int64) (user domain.User, err error) {
 	query := `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM public."users"
 	WHERE id = $1`
@@ -36,6 +37,7 @@ func (p *Postgres) SelectOne(ctx context.Context, id int64) (user domain.User, e
 	return user, nil
 }
 
+// Функция выборки всех user с возможностью сортировки
 func (p *Postgres) Select(ctx context.Context, options ...domain.UserSortParameters) (users []domain.User, err error) {
 	query := `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM public."users"`
 
@@ -62,6 +64,7 @@ func (p *Postgres) Select(ctx context.Context, options ...domain.UserSortParamet
 	return users, nil
 }
 
+// Функция добавления пользователя с возвращением его id
 func (p *Postgres) Insert(ctx context.Context, user domain.User) (int64, error) {
 	query := `
 	INSERT INTO public."users" (passport_series, passport_number, surname, name, patronymic, address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
@@ -77,6 +80,7 @@ func (p *Postgres) Insert(ctx context.Context, user domain.User) (int64, error) 
 	return user.ID, nil
 }
 
+// Функция удаления пользователя по id
 func (p *Postgres) Delete(ctx context.Context, id int) error {
 	query := `DELETE public."users" WHERE id = $1`
 
@@ -87,6 +91,7 @@ func (p *Postgres) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// Функция полного обновления пользователя
 func (p *Postgres) Update(ctx context.Context, us domain.User) error {
 	query := `
 	UPDATE public."users" SET passport_series = $1, passport_number= $2, surname= $3, name= $4, patronymic= $5, address= $6
@@ -98,6 +103,7 @@ func (p *Postgres) Update(ctx context.Context, us domain.User) error {
 	return nil
 }
 
+// Функция выборки всех пользователей с пагинацией и сортировкой
 func (p *Postgres) PagSelect(ctx context.Context, limit int, offset int, options ...domain.UserSortParameters) (users []domain.User, err error) {
 	query := `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM public."users"`
 
@@ -126,6 +132,7 @@ func (p *Postgres) PagSelect(ctx context.Context, limit int, offset int, options
 	return users, nil
 }
 
+// Функция парсинга параметров сортировки
 func validateSortParameters(options domain.UserSortParameters) string {
 	var void domain.UserSortParameters
 	if options == void {
@@ -186,6 +193,7 @@ func validateSortParameters(options domain.UserSortParameters) string {
 	return res
 }
 
+// Функция добавления metrics
 func (p *Postgres) InsertMetrics(ctx context.Context, m domain.Metrics) error {
 	query := `INSERT INTO public."metrics" (user_id, func_name, time_micro) VALUES ($1, $2, $3)`
 
@@ -195,6 +203,7 @@ func (p *Postgres) InsertMetrics(ctx context.Context, m domain.Metrics) error {
 	return nil
 }
 
+// Функция выборки всех метрив по uuid
 func (p *Postgres) SelectMetrics(ctx context.Context, user uuid.UUID) ([]domain.Metrics, error) {
 	query := `SELECT user_id, func_name, time_micro FROM public."metrics" WHERE user_id = $1 ORDER BY time_micro DESC`
 

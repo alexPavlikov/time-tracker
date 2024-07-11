@@ -28,6 +28,7 @@ func (c *Config) ServerToString() string {
 	return fmt.Sprintf("%s:%d", c.Path, c.Port)
 }
 
+// Функция загрузки конфига из файла
 func Load() (*Config, error) {
 
 	path, file := fetchConfigPath()
@@ -48,6 +49,7 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
+// Функция получение пути к файлу конфига
 func fetchConfigPath() (path, file string) {
 
 	flag.StringVar(&path, "config_path", "", "config file path")
@@ -57,6 +59,7 @@ func fetchConfigPath() (path, file string) {
 	return path, file
 }
 
+// Функция инициализация viper для считывания конфиг файла в структуру
 func initViper(path string, file string, cfg Config) (Config, error) {
 	viper.SetConfigName(file)
 	viper.SetConfigType("env")

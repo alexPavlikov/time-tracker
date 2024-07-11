@@ -26,21 +26,26 @@ const (
 	envProd  = "prod"
 )
 
+// Функция инициализации и запуска веб-сервера
 func Run() error {
+	// чтение конфиг файла
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("config load error: %w", err)
 	}
 
+	// настройка логгера
 	setupLogger(cfg.LogLevel)
 
 	slog.Info("starting application listen on", "server", cfg.ServerToString())
 
+	// генерация уникального ключа для метрик
 	UUID, err := uuid.NewV4()
 	if err != nil {
 		return fmt.Errorf("create user UUID error: %w", err)
 	}
 
+	// подключение в базе данных
 	conn, err := db.Connect(cfg)
 	if err != nil {
 		return fmt.Errorf("failed connect to database: %w", err)
@@ -48,13 +53,12 @@ func Run() error {
 
 	defer conn.Close()
 
-	//----------------------------------------------
+	// инициализация миграции
 	db := stdlib.OpenDBFromPool(conn)
 
 	if err := goose.Up(db, "."); err != nil {
 		return fmt.Errorf("failed to start migrations: %w", err)
 	}
-	//----------------------------------------------
 
 	ctx := context.Background()
 
@@ -76,6 +80,7 @@ func Run() error {
 	return nil
 }
 
+// Функция настройки логгера в зависимости от среды разработки
 func setupLogger(logLevel string) {
 	var log *slog.Logger
 	switch logLevel {
